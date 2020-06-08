@@ -13,6 +13,7 @@ public class FastWindow {
 	 * @param args - not used, don't touch
 	 */
 	public static void main(String args[]) {
+		long start = System.currentTimeMillis();;
 		JFrame theWindow = new JFrame("Window");
 		FastPanel panel = new FastPanel();
 		theWindow.setSize(WIDTH, HEIGHT);
@@ -22,6 +23,8 @@ public class FastWindow {
 		theWindow.add(panel);
 		panel.start();
 		theWindow.setVisible(true);
+		long end = System.currentTimeMillis();;
+		System.out.println(((end-start)/1000)+" s");
 	}
 
 }

@@ -10,6 +10,7 @@ import java.awt.GraphicsEnvironment;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -42,16 +43,588 @@ public class FastPanel extends JPanel {
 	private static int blur = 50;              //
 	private static double sensitivity = 0; // Initial 0.4
 	private static int image_blur_kernel = 3;
-	private static String outdir = "C:\\Users\\achen\\Desktop\\Fall '19\\Master's Thesis\\Radon Transform Code\\Masters Thesis\\Masters Thesis\\Code\\BU Implementation version\\Test Results\\";
-	private static String indir  = "C:\\Users\\achen\\Desktop\\Fall '19\\Master's Thesis\\Radon Transform Code\\Masters Thesis\\Masters Thesis\\Code\\BU Implementation version\\Radon\\images\\";
+	//int count1, count2 = 0;
 	
+	// Run for dataset
+	//private static String outdir = "C:\\Users\\achen\\Desktop\\Fall '19\\Master's Thesis\\Radon Transform Code\\Masters Thesis\\Masters Thesis\\Code\\BU Implementation version\\Test Results\\";
+	//private static String indir  = "C:\\Users\\achen\\Desktop\\Fall '19\\Master's Thesis\\Radon Transform Code\\Masters Thesis\\Masters Thesis\\Code\\BU Implementation version\\Radon\\images\\";
+	//private static String img_dir  = "C:\\Users\\achen\\Desktop\\Spring 2020\\Master's Thesis\\Code\\Dataset\\";
+	private static String result_dir  = "C:\\Users\\achen\\Desktop\\Spring 2020\\Master's Thesis\\Code\\Results\\line_detection\\";
+	private static String radon_dir  = "C:\\Users\\achen\\Desktop\\Spring 2020\\Master's Thesis\\Code\\Results\\sinogram\\";
+	private static String gray_dir  = "C:\\Users\\achen\\Desktop\\Spring 2020\\Master's Thesis\\Code\\Results\\gray\\";
+	private static String blur_dir  = "C:\\Users\\achen\\Desktop\\Spring 2020\\Master's Thesis\\Code\\Results\\blur\\";
+	private static String blurx_dir  = "C:\\Users\\achen\\Desktop\\Spring 2020\\Master's Thesis\\Code\\Results\\blurx\\";
+	
+	// File representing the directory folder
+	static final File img_dir = new File("C:\\Users\\achen\\Desktop\\Spring 2020\\Master's Thesis\\Code\\Dataset\\");
+	//static final File result_dir = new File("C:\\Users\\achen\\Desktop\\Spring 2020\\Master's Thesis\\Code\\Results\\line_detection\\");
+	//static final File radon_dir = new File("C:\\Users\\achen\\Desktop\\Spring 2020\\Master's Thesis\\Code\\Results\\sinogram\\");
+	//static final File gray_dir = new File("C:\\Users\\achen\\Desktop\\Spring 2020\\Master's Thesis\\Code\\Results\\gray\\");
+	//static final File blur_dir = new File("C:\\Users\\achen\\Desktop\\Spring 2020\\Master's Thesis\\Code\\Results\\blur\\");
+	//static final File blurx_dir = new File("C:\\Users\\achen\\Desktop\\Spring 2020\\Master's Thesis\\Code\\Results\\blurx\\");
+	
+	// array of supported extensions
+	static final String[] EXTENSIONS = new String[] {
+		"gif", "png", "bmp", "jpg"
+	};
+	
+	// filter to identify images based on their extensions
+	static final FilenameFilter img_filter = new FilenameFilter() {
+		
+		@Override
+		public boolean accept(final File dir, final String name) {
+			for(final String ext : EXTENSIONS) {
+				if (name.endsWith("." + ext)) {
+					return (true);					
+				}
+			}
+			return false;
+		}
+	};
+	
+
 	/**
-	 * a private method which returns the nearest power of two to the inputted
+	 * a constructor for the FastPanel class the constructor pulls the image from
+	 * the file path, finds its derivative, erodes it, and pads it to a 2^n x 2^n
+	 * square
+	 */
+
+	/*
+	public FastPanel() {
+		
+		// Start loop
+		if ((img_dir.isDirectory()) && (result_dir.isDirectory()) && (gray_dir.isDirectory()) && (blur_dir.isDirectory()) && (blurx_dir.isDirectory())) { // make sure it's a directory
+            for (final File f : img_dir.listFiles(img_filter)) {
+                //BufferedImage img = null;
+				try {
+					// Run for dataset :: image input directory
+					
+					//path = indir + "floor2.jpg";
+					//System.out.println(path);
+					//image = ImageIO.read(new File(path));
+					System.out.println("img_dir->> " + img_dir);
+					System.out.println("image_name: " + f.getName());
+					image = ImageIO.read(f);
+					graphic = (Graphics2D) image.getGraphics();
+					FastWindow.WIDTH = image.getWidth();
+					FastWindow.HEIGHT = image.getHeight();
+					int width = image.getWidth();
+					int height = image.getHeight();
+		
+					//
+					// Convert to grayscale
+					//
+					double [][]gray = new double[width][height];
+					for (int x=0; x<width; x++) {
+						for (int y=0; y<height; y++) {
+							Pixel myPixel = new Pixel(x,y);
+							gray[x][y] = myPixel.giveBrightness(image);
+						}
+					}
+					
+					// Run for dataset
+					//saveGray(gray, outdir+"gray.png", width, height);
+					saveGray(gray, gray_dir + "gray_"+count1+".png", width, height);
+					
+					//
+					// Blur the image
+					//
+					double []kernel   = triangularKernel(image_blur_kernel);
+					double [][]blurx  = convolveX(gray, kernel, width, height);
+					double [][]blurimg  = convolveY(blurx, kernel, width, height);
+					
+					// Run for dataset
+					//saveGray(blurx,  outdir+"blurx.png", width, height);
+					//saveGray(blurimg,   outdir+"blur.png", width, height);
+					saveGray(blurx, blurx_dir +"blurx_" + count1 + ".png", width, height);
+					saveGray(blurimg, blur_dir + "blur_" + count1 + ".png", width, height);
+					count1++;
+					
+					//
+					// Take the derivative
+					//
+					//Morph derivative = new Morph(image);
+					//double[][] derivArray = derivative.findDerivative();
+					double[][] derivArray = sobel(blurimg, width, height);
+					for (int x = 0; x < width; x++) {
+						for(int y =0;y<height;y++) {
+							derivArray[x][y] *=10;
+						}
+					}
+					
+					//
+					// Draw the derivative
+					//
+					for (int x = 0; x < width - 2; x++) {
+						for (int y = 0; y < height - 2; y++) {
+							double arrayValue = derivArray[x][y];
+							int rgbNum = (int) Math.floor(arrayValue);
+							try {
+								Color color = new Color(rgbNum, rgbNum, rgbNum);
+								graphic.setColor(color);
+								graphic.fillRect(x, y, 1, 1);
+							} catch (IllegalArgumentException a) {
+								try {
+									int newRGB = (int) Math.floor(rgbNum * 0.25);
+									Color color = new Color(newRGB, newRGB, newRGB);
+									graphic.setColor(color);
+									graphic.fillRect(x, y, 1, 1);
+								} catch (IllegalArgumentException b) {
+									// some values fall outside of 0 to 255 range, doesn't affect the image
+								}
+							}
+						}
+					}
+		
+					//
+					// Widen the lines 3x3 kernel
+					//
+					Morph erosion = new Morph(image);
+					double[][] array = erosion.erode();
+					for (int x = 1; x < width - 2; x++) {
+						for (int y = 1; y < height - 2; y++) {
+							double arrayValue = array[x][y];
+							int rgbNum = (int) Math.floor(arrayValue);
+							try {
+								Color color = new Color(rgbNum, rgbNum, rgbNum);
+								graphic.setColor(color);
+								graphic.fillRect(x, y, 1, 1);
+							} catch (IllegalArgumentException e) {
+								System.out.println(rgbNum + " is not a valid value");
+							}
+						}
+					}
+		
+					//
+					// padding out the image and fixing the white line left by the derivative
+					//
+					int control = Math.max(width, height);
+					int newN = powerOfTwo(control);
+					newImage = configu.createCompatibleImage(newN, newN);
+					g2 = (Graphics2D) newImage.getGraphics();
+					g2.drawImage(image, 0, 0, null);
+					g2.setColor(Color.BLACK);
+					g2.fillRect(0, 0, image.getWidth() - 1, 5);
+					g2.setColor(Color.BLACK);
+					g2.fillRect(0, 0, 10, image.getHeight() - 1);
+					g2.setColor(Color.BLACK);
+					g2.fillRect(0, image.getHeight() - 2, image.getWidth() - 1, 5);
+					g2.setColor(Color.BLACK);
+					g2.fillRect(image.getWidth() - 10, 0, 10, image.getHeight() - 1);
+		
+				} catch (IOException e) {
+				  System.out.println("IOException");
+				} catch (NullPointerException n) {
+				  System.out.println("File name " + f.getName() + " does not exist.");
+				}
+		
+		//end for loop and if
+            }
+		}
+
+	}
+
+	*/
+	/**
+	 * a method which calls the radon on the image, and calls makeLine to draw on
+	 * the edges. Can also construct the sinogram map
+	 */
+	public void start() {
+
+		// Switch fast panel code to start() method
+
+		
+		// Start loop
+		//if ((img_dir.isDirectory()) && (result_dir.isDirectory()) && (radon_dir.isDirectory()) && (gray_dir.isDirectory()) && (blur_dir.isDirectory()) && (blurx_dir.isDirectory())) { // make sure it's a directory
+		if (img_dir.isDirectory()) {    
+			for (final File f : img_dir.listFiles(img_filter)) {
+                //BufferedImage img = null;
+				
+				try {
+					// Run for dataset :: image input directory
+					
+					//path = indir + "floor2.jpg";
+					//System.out.println(path);
+					//image = ImageIO.read(new File(path));
+					System.out.println("img_dir->> " + img_dir);
+					System.out.println("image_name: " + f.getName());
+					image = ImageIO.read(f);
+					graphic = (Graphics2D) image.getGraphics();
+					FastWindow.WIDTH = image.getWidth();
+					FastWindow.HEIGHT = image.getHeight();
+					int width = image.getWidth();
+					int height = image.getHeight();
+		
+					//
+					// Convert to grayscale
+					//
+					double [][]gray = new double[width][height];
+					for (int x=0; x<width; x++) {
+						for (int y=0; y<height; y++) {
+							Pixel myPixel = new Pixel(x,y);
+							gray[x][y] = myPixel.giveBrightness(image);
+						}
+					}
+					
+					// Run for dataset
+					//saveGray(gray, outdir+"gray.png", width, height);
+					System.out.println("gray_dir->> " + gray_dir);
+					saveGray(gray, gray_dir + f.getName(), width, height);
+					
+					//
+					// Blur the image
+					//
+					double []kernel   = triangularKernel(image_blur_kernel);
+					double [][]blurx  = convolveX(gray, kernel, width, height);
+					double [][]blurimg  = convolveY(blurx, kernel, width, height);
+					
+					// Run for dataset
+					//saveGray(blurx,  outdir+"blurx.png", width, height);
+					//saveGray(blurimg,   outdir+"blur.png", width, height);
+					System.out.println("blurx_dir->> " + blurx_dir);
+					System.out.println("blur_dir->> " + blur_dir);
+					saveGray(blurx, blurx_dir + f.getName(), width, height);
+					saveGray(blurimg, blur_dir + f.getName(), width, height);
+					//count1++;
+					
+					//
+					// Take the derivative
+					//
+					//Morph derivative = new Morph(image);
+					//double[][] derivArray = derivative.findDerivative();
+					double[][] derivArray = sobel(blurimg, width, height);
+					for (int x = 0; x < width; x++) {
+						for(int y =0;y<height;y++) {
+							derivArray[x][y] *=10;
+						}
+					}
+					
+					//
+					// Draw the derivative
+					//
+					for (int x = 0; x < width - 2; x++) {
+						for (int y = 0; y < height - 2; y++) {
+							double arrayValue = derivArray[x][y];
+							int rgbNum = (int) Math.floor(arrayValue);
+							try {
+								Color color = new Color(rgbNum, rgbNum, rgbNum);
+								graphic.setColor(color);
+								graphic.fillRect(x, y, 1, 1);
+							} catch (IllegalArgumentException a) {
+								try {
+									int newRGB = (int) Math.floor(rgbNum * 0.25);
+									Color color = new Color(newRGB, newRGB, newRGB);
+									graphic.setColor(color);
+									graphic.fillRect(x, y, 1, 1);
+								} catch (IllegalArgumentException b) {
+									// some values fall outside of 0 to 255 range, doesn't affect the image
+								}
+							}
+						}
+					}
+		
+					//
+					// Widen the lines 3x3 kernel
+					//
+					Morph erosion = new Morph(image);
+					double[][] array = erosion.erode();
+					for (int x = 1; x < width - 2; x++) {
+						for (int y = 1; y < height - 2; y++) {
+							double arrayValue = array[x][y];
+							int rgbNum = (int) Math.floor(arrayValue);
+							try {
+								Color color = new Color(rgbNum, rgbNum, rgbNum);
+								graphic.setColor(color);
+								graphic.fillRect(x, y, 1, 1);
+							} catch (IllegalArgumentException e) {
+								System.out.println(rgbNum + " is not a valid value");
+							}
+						}
+					}
+		
+					//
+					// padding out the image and fixing the white line left by the derivative
+					//
+					int control = Math.max(width, height);
+					int newN = powerOfTwo(control);
+					newImage = configu.createCompatibleImage(newN, newN);
+					g2 = (Graphics2D) newImage.getGraphics();
+					g2.drawImage(image, 0, 0, null);
+					g2.setColor(Color.BLACK);
+					g2.fillRect(0, 0, image.getWidth() - 1, 5);
+					g2.setColor(Color.BLACK);
+					g2.fillRect(0, 0, 10, image.getHeight() - 1);
+					g2.setColor(Color.BLACK);
+					g2.fillRect(0, image.getHeight() - 2, image.getWidth() - 1, 5);
+					g2.setColor(Color.BLACK);
+					g2.fillRect(image.getWidth() - 10, 0, 10, image.getHeight() - 1);
+		
+	
+		// End: Switch fast panel code to start() method
+		
+				// Calculate the radon transform using O N^2 lg N with ADRT algorithm
+				int n = (newImage.getWidth()) / 2;
+				int maxRho = (int) Math.floor(Math.sqrt((n * n) + (n * n)));
+				double[][] table = radon(newImage, maxRho, 360);
+		
+				// make a backup of the table
+				double[][] origtable = new double[maxRho][360];
+				for (int r = 0; r < maxRho; r++)
+					for (int t = 0; t < 360; t++)
+						origtable[r][t] = table[r][t];
+		
+				// achen:: blur image changes
+				System.out.println("Blurring table\n");
+				double newtable[][] = new double[maxRho][360];
+		
+				//default: 250    for tall buildings: 1000
+				for (int i = 0; i < blur_strength; i++) {
+					for (int rho1 = 1; rho1 < maxRho - 1; rho1++) {
+						for (int theta = 1; theta < 360 - 1; theta++) {
+							double blurred = (4 * table[rho1][theta] + table[rho1 + 1][theta] + table[rho1][theta + 1]
+									+ table[rho1 - 1][theta] + table[rho1][theta - 1]) / 8;
+							newtable[rho1][theta] = Math.max(blurred, table[rho1][theta]);
+						}
+					}
+		
+					for (int rho1 = 1; rho1 < maxRho; rho1++) {
+						for (int theta = 1; theta < 360; theta++) {
+							table[rho1][theta] = newtable[rho1][theta];
+						}
+					}
+		
+				}
+				//default: 350	  for tall buildings: 100
+				for (int i = 0; i < blur; i++) {
+					for (int rho1 = 1; rho1 < maxRho - 1; rho1++) {
+						for (int theta = 1; theta < 360 - 1; theta++) {
+							double blurred = (4 * table[rho1][theta] + table[rho1 + 1][theta] + table[rho1][theta + 1]
+									+ table[rho1 - 1][theta] + table[rho1][theta - 1]) / 8;
+							newtable[rho1][theta] = blurred;
+						}
+					}
+		
+					for (int rho1 = 1; rho1 < maxRho; rho1++) {
+						for (int theta = 1; theta < 360; theta++) {
+							table[rho1][theta] = newtable[rho1][theta];
+						}
+					}
+				}
+				// end achen:: blur image changes
+		
+				/*
+				 * / achen:: alternate smooth image changes
+				 * System.out.println("Smoothening table\n"); double newtable1[][] = new
+				 * double[maxRho][360]; //int maxNeigh = max value of 9 neighbours; int
+				 * smoothen_strength = 60; for (int i=0;i<smoothen_strength;i++) { for (int rho1
+				 * = 1; rho1 < maxRho-1; rho1++) { for (int theta = 1; theta < 360-1; theta++) {
+				 * double maxNeigh =
+				 * Math.max(Math.max(Math.max(Math.max(Math.max(Math.max(table[rho1+1][theta+1],
+				 * table[rho1][theta]),table[rho1+1][theta]),table[rho1][theta+1]),table[rho1-1]
+				 * [theta]),table[rho1][theta-1]),table[rho1-1][theta-1]);
+				 * newtable1[rho1][theta] = Math.max(maxNeigh-50, table[rho1][theta]); } }
+				 * //newtable1[rho][theta] = max(0.97 * maxNeigh, table[rho][theta]; for (int
+				 * rho1 = 1; rho1 < maxRho; rho1++) { for (int theta = 1; theta < 360; theta++)
+				 * { table[rho1][theta] = newtable1[rho1][theta]; } } } //end achen:: smoothen
+				 * pixel changes
+				 */
+		
+				// makeLine(table);
+				// ArrayList<Pixel> pixelList = makeLine(newtable);
+				ArrayList<Pixel> pixelList = new ArrayList<Pixel>();
+				int maxRho1 = table.length;
+				int maxDegs = table[0].length;
+				double percent = maxAveFinal * sensitivity;
+		
+				// Original version using sensitivity
+				/*
+				 * // takes out pixels within the threshold, and then removes those which are
+				 * too // close together for (int outerRho = 0; outerRho < maxRho; outerRho++) {
+				 * for (int outerDegs = 0; outerDegs < maxDegs; outerDegs++) { double currentVal
+				 * = table[outerRho][outerDegs]; if (currentVal >= (maxAveFinal - percent)) {
+				 * Pixel bigPixel = new Pixel(outerRho, outerDegs);
+				 * 
+				 * if (suppress(pixelList, bigPixel)) {
+				 * 
+				 * } else { pixelList.add(bigPixel); } } } }
+				 */
+		
+				// Pure Non-max suppress
+				for (int rho = 2; rho < maxRho1 - 2; rho++) {
+					for (int deg = 2; deg < maxDegs - 2; deg++) {
+						if (table[rho][deg] > table[rho - 1][deg - 1] && table[rho][deg] > table[rho - 1][deg]
+								&& table[rho][deg] > table[rho - 1][deg + 1] && table[rho][deg] > table[rho][deg - 1]
+								&& table[rho][deg] > table[rho][deg + 1] && table[rho][deg] > table[rho + 1][deg - 1]
+								&& table[rho][deg] > table[rho + 1][deg] && table[rho][deg] > table[rho + 1][deg + 1]) {
+							Pixel bigPixel = new Pixel(rho, deg);
+							pixelList.add(bigPixel);
+						}
+					}
+				}
+				
+				// create backup of pixelList
+				ArrayList<Pixel> origPixelList = new ArrayList<Pixel>();
+				for ( int i= 0;i<pixelList.size();i++) {
+					origPixelList.add(pixelList.get(i));
+				}
+		
+				// achen: Create Map of Pixel
+				int clustermap[][] = new int[maxRho][360];
+				int kmax = 1;
+				for (int i = 0; i < kmax; i++) {
+					for (int rho2 = 1; rho2 < maxRho - 1; rho2++) {
+						for (int theta2 = 1; theta2 < 360 - 1; theta2++) {
+							for (int c = 0; c < pixelList.size(); c++) {
+								double a = rho2 - pixelList.get(c).x;
+								double b = theta2 - pixelList.get(c).y;
+								double dist = (a * a) + (b * b);
+								dist = Math.sqrt(dist);
+								double d = rho2 - pixelList.get(clustermap[rho2][theta2]).x;
+								double e = theta2 - pixelList.get(clustermap[rho2][theta2]).y;
+								// System.out.println("d = "+d);
+								// System.out.println("e = "+e);
+								double prevDist = (d * d) + (e * e);
+								prevDist = Math.sqrt(prevDist);
+								if (dist < prevDist) {
+									clustermap[rho2][theta2] = c;
+									// System.out.printf("clustermap = " + clustermap[rho2][theta2]);
+								}
+							}
+						}
+					}
+		
+					for (int rho2 = 1; rho2 < maxRho; rho2++) {
+						for (int theta2 = 1; theta2 < 360; theta2++) {
+							int c = clustermap[rho2][theta2];
+							// System.out.println("c = " + c);
+							double a = origtable[rho2][theta2];
+							double b = origtable[pixelList.get(c).x][pixelList.get(c).y];
+		
+							if (a > b) {
+								pixelList.get(c).x = rho2;
+								pixelList.get(c).y = theta2;
+							}
+						}
+					}
+				}
+				// achen: end map of pixel changes
+		
+				// makeLine
+				makeLine(newtable, pixelList, f);
+		
+				// the below code draws the sinogram
+				//double percent = maxAveFinal * sensitivity;
+				finalImage = configu.createCompatibleImage(maxRho, 360);
+				finalGraphic = finalImage.createGraphics();
+		
+				for (int degs = 0; degs < 360; degs++) {
+					for (int rho = 0; rho < maxRho; rho++) {
+						// double val = table[rho][degs];
+						//double val = newtable[rho][degs];
+						double val = origtable[rho][degs];
+						// achen:: print table values with (rho, degs) coordinates
+						//System.out.println(val);
+						double part1 = val / maxAveFinal;
+						double part2 = part1 * 255;
+						int colorVal = (int) Math.floor(part2);
+						Color color = new Color(colorVal, colorVal, colorVal);
+						/*
+						 * if (val >= (maxAveFinal - percent)) { System.out.println("Rho = " + rho +
+						 * ", Deg = " + degs); finalGraphic.setColor(Color.RED);
+						 * //finalGraphic.fillRect(rho, degs, 5, 5) finalGraphic.fillRect(rho - 1, degs
+						 * - 1, 1, 1); }
+						 */
+		
+						finalGraphic.setColor(color);
+						finalGraphic.fillRect(rho, degs, 1, 1);
+					}
+				}
+		
+				// achen:: create file to write rho and theta values
+				try {
+					File file = new File("C:\\Users\\achen\\Desktop\\Fall '19\\Master's Thesis\\Radon Transform Code\\test.txt");
+					if(file.createNewFile()) {
+						System.out.println("Successfully created");
+					}
+					else {
+						System.out.println("Failed to create or file already exist");
+					}
+					FileWriter fileWriter = new FileWriter(file);
+					//System.out.println("Writing fields to file... ");
+					fileWriter.write(String.format("%-14s%-14s%s\n", "rho", "theta", "pixel"));
+					//System.out.println("Writing data to file... ");
+					
+				for (int i = 0; i < origPixelList.size(); i++) {
+					Pixel maxRhoTheta = origPixelList.get(i);
+					int rh = maxRhoTheta.x;
+					int degrees = maxRhoTheta.y;
+					double val = origtable[rh][degrees];
+		
+					//System.out.println("rho = " + rh);
+					//System.out.println("theta = " + degrees);
+					//System.out.println("Pixel Value = " + val);
+					// achen:: write rho and theta to file
+					fileWriter.write(String.format("%-14d%-14d%f\n", rh, degrees, val));
+					fileWriter.flush();
+					finalGraphic.setColor(Color.BLUE);
+					finalGraphic.fillRect(rh - 1, degrees - 1, 4, 4);
+				}
+				fileWriter.close();
+				
+				}
+				catch(IOException e){
+					e.printStackTrace();				
+				}
+				// achen:: end write to file
+				
+				
+				 for (int i = 0; i < pixelList.size(); i++) 
+				 { 
+					 Pixel maxRhoTheta =  pixelList.get(i); int rh = maxRhoTheta.x; int degrees = maxRhoTheta.y;
+					 //System.out.println("rho = " + rh); 
+					 //System.out.println("degrees = " + degrees); 
+					 finalGraphic.setColor(Color.RED); 
+					 finalGraphic.fillRect(rh - 1, degrees - 1, 4, 4); 
+					 }
+				 
+		
+				System.out.println("Height of image:: " + finalImage.getHeight());
+				System.out.println("Width of image:: " + finalImage.getWidth());
+		
+				// Run for dataset
+				//File outputFile = new File(
+				//		outdir + "floor2_radon.png");
+				System.out.println("radon_dir->> " + radon_dir);
+				File outputFile = new File(
+						radon_dir + f.getName());
+				try {
+					ImageIO.write(finalImage, "png", outputFile);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+				} catch (IOException e) {
+					  System.out.println("IOException");
+					} catch (NullPointerException n) {
+					  System.out.println("File name " + img_dir + f.getName() + " does not exist.");
+					}
+			// close try block above and end of for loop and if from FastPanel()
+	            }
+			}
+
+	}
+
+	/**
+	 * a private method which returns the nearest power of two to the inputted (called inside constructor FastPanel())
 	 * value, used to find the nearest size to pad the image
 	 * 
 	 * @param side - a int of the inputted value
 	 * @return an int which is the closest power of two greater than side
 	 */
+	
+	// End for loop
+	
 	private int powerOfTwo(int side) {
 		int power = 0;
 		while (side > (Math.pow(2, power))) {
@@ -59,374 +632,9 @@ public class FastPanel extends JPanel {
 		}
 		return ((int) Math.pow(2, power));
 	}
-
+	
 	/**
-	 * a constructor for the FastPanel class the constructor pulls the image from
-	 * the file path, finds its derivative, erodes it, and pads it to a 2^n x 2^n
-	 * square
-	 */
-	public FastPanel() {
-		try {
-			path = indir + "floor2.jpg";
-			System.out.println(path);
-			image = ImageIO.read(new File(path));
-			graphic = (Graphics2D) image.getGraphics();
-			FastWindow.WIDTH = image.getWidth();
-			FastWindow.HEIGHT = image.getHeight();
-			int width = image.getWidth();
-			int height = image.getHeight();
-
-			//
-			// Convert to grayscale
-			//
-			double [][]gray = new double[width][height];
-			for (int x=0; x<width; x++) {
-				for (int y=0; y<height; y++) {
-					Pixel myPixel = new Pixel(x,y);
-					gray[x][y] = myPixel.giveBrightness(image);
-				}
-			}
-			
-			saveGray(gray, outdir+"gray.png", width, height);
-			
-			//
-			// Blur the image
-			//
-			double []kernel   = triangularKernel(image_blur_kernel);
-			double [][]blurx  = convolveX(gray, kernel, width, height);
-			double [][]blurimg   = convolveY(blurx, kernel, width, height);
-			
-			saveGray(blurx,  outdir+"blurx.png", width, height);
-			saveGray(blurimg,   outdir+"blur.png", width, height);
-			
-			//
-			// Take the derivative
-			//
-			//Morph derivative = new Morph(image);
-			//double[][] derivArray = derivative.findDerivative();
-			double[][] derivArray = sobel(blurimg, width, height);
-			for (int x = 0; x < width; x++) {
-				for(int y =0;y<height;y++) {
-					derivArray[x][y] *=10;
-				}
-			}
-			
-			//
-			// Draw the derivative
-			//
-			for (int x = 0; x < width - 2; x++) {
-				for (int y = 0; y < height - 2; y++) {
-					double arrayValue = derivArray[x][y];
-					int rgbNum = (int) Math.floor(arrayValue);
-					try {
-						Color color = new Color(rgbNum, rgbNum, rgbNum);
-						graphic.setColor(color);
-						graphic.fillRect(x, y, 1, 1);
-					} catch (IllegalArgumentException a) {
-						try {
-							int newRGB = (int) Math.floor(rgbNum * 0.25);
-							Color color = new Color(newRGB, newRGB, newRGB);
-							graphic.setColor(color);
-							graphic.fillRect(x, y, 1, 1);
-						} catch (IllegalArgumentException b) {
-							// some values fall outside of 0 to 255 range, doesn't affect the image
-						}
-					}
-				}
-			}
-
-			//
-			// Widen the lines 3x3 kernel
-			//
-			Morph erosion = new Morph(image);
-			double[][] array = erosion.erode();
-			for (int x = 1; x < width - 2; x++) {
-				for (int y = 1; y < height - 2; y++) {
-					double arrayValue = array[x][y];
-					int rgbNum = (int) Math.floor(arrayValue);
-					try {
-						Color color = new Color(rgbNum, rgbNum, rgbNum);
-						graphic.setColor(color);
-						graphic.fillRect(x, y, 1, 1);
-					} catch (IllegalArgumentException e) {
-						System.out.println(rgbNum + " is not a valid value");
-					}
-				}
-			}
-
-			//
-			// padding out the image and fixing the white line left by the derivative
-			//
-			int control = Math.max(width, height);
-			int newN = powerOfTwo(control);
-			newImage = configu.createCompatibleImage(newN, newN);
-			g2 = (Graphics2D) newImage.getGraphics();
-			g2.drawImage(image, 0, 0, null);
-			g2.setColor(Color.BLACK);
-			g2.fillRect(0, 0, image.getWidth() - 1, 5);
-			g2.setColor(Color.BLACK);
-			g2.fillRect(0, 0, 10, image.getHeight() - 1);
-			g2.setColor(Color.BLACK);
-			g2.fillRect(0, image.getHeight() - 2, image.getWidth() - 1, 5);
-			g2.setColor(Color.BLACK);
-			g2.fillRect(image.getWidth() - 10, 0, 10, image.getHeight() - 1);
-
-		} catch (IOException e) {
-			System.out.println("IOException");
-		} catch (NullPointerException n) {
-			System.out.println("File name " + path + " does not exist.");
-		}
-
-	}
-
-	/**
-	 * a method which calls the radon on the image, and calls makeLine to draw on
-	 * the edges. Can also construct the sinogram map
-	 */
-	public void start() {
-
-		// Calculate the radon transform using O N^2 lg N with ADRT algorithm
-		int n = (newImage.getWidth()) / 2;
-		int maxRho = (int) Math.floor(Math.sqrt((n * n) + (n * n)));
-		double[][] table = radon(newImage, maxRho, 360);
-
-		// make a backup of the table
-		double[][] origtable = new double[maxRho][360];
-		for (int r = 0; r < maxRho; r++)
-			for (int t = 0; t < 360; t++)
-				origtable[r][t] = table[r][t];
-
-		// achen:: blur image changes
-		System.out.println("Blurring table\n");
-		double newtable[][] = new double[maxRho][360];
-
-		//default: 250    for tall buildings: 1000
-		for (int i = 0; i < blur_strength; i++) {
-			for (int rho1 = 1; rho1 < maxRho - 1; rho1++) {
-				for (int theta = 1; theta < 360 - 1; theta++) {
-					double blurred = (4 * table[rho1][theta] + table[rho1 + 1][theta] + table[rho1][theta + 1]
-							+ table[rho1 - 1][theta] + table[rho1][theta - 1]) / 8;
-					newtable[rho1][theta] = Math.max(blurred, table[rho1][theta]);
-				}
-			}
-
-			for (int rho1 = 1; rho1 < maxRho; rho1++) {
-				for (int theta = 1; theta < 360; theta++) {
-					table[rho1][theta] = newtable[rho1][theta];
-				}
-			}
-
-		}
-		//default: 350	  for tall buildings: 100
-		for (int i = 0; i < blur; i++) {
-			for (int rho1 = 1; rho1 < maxRho - 1; rho1++) {
-				for (int theta = 1; theta < 360 - 1; theta++) {
-					double blurred = (4 * table[rho1][theta] + table[rho1 + 1][theta] + table[rho1][theta + 1]
-							+ table[rho1 - 1][theta] + table[rho1][theta - 1]) / 8;
-					newtable[rho1][theta] = blurred;
-				}
-			}
-
-			for (int rho1 = 1; rho1 < maxRho; rho1++) {
-				for (int theta = 1; theta < 360; theta++) {
-					table[rho1][theta] = newtable[rho1][theta];
-				}
-			}
-		}
-		// end achen:: blur image changes
-
-		/*
-		 * / achen:: alternate smooth image changes
-		 * System.out.println("Smoothening table\n"); double newtable1[][] = new
-		 * double[maxRho][360]; //int maxNeigh = max value of 9 neighbours; int
-		 * smoothen_strength = 60; for (int i=0;i<smoothen_strength;i++) { for (int rho1
-		 * = 1; rho1 < maxRho-1; rho1++) { for (int theta = 1; theta < 360-1; theta++) {
-		 * double maxNeigh =
-		 * Math.max(Math.max(Math.max(Math.max(Math.max(Math.max(table[rho1+1][theta+1],
-		 * table[rho1][theta]),table[rho1+1][theta]),table[rho1][theta+1]),table[rho1-1]
-		 * [theta]),table[rho1][theta-1]),table[rho1-1][theta-1]);
-		 * newtable1[rho1][theta] = Math.max(maxNeigh-50, table[rho1][theta]); } }
-		 * //newtable1[rho][theta] = max(0.97 * maxNeigh, table[rho][theta]; for (int
-		 * rho1 = 1; rho1 < maxRho; rho1++) { for (int theta = 1; theta < 360; theta++)
-		 * { table[rho1][theta] = newtable1[rho1][theta]; } } } //end achen:: smoothen
-		 * pixel changes
-		 */
-
-		// makeLine(table);
-		// ArrayList<Pixel> pixelList = makeLine(newtable);
-		ArrayList<Pixel> pixelList = new ArrayList<Pixel>();
-		int maxRho1 = table.length;
-		int maxDegs = table[0].length;
-		double percent = maxAveFinal * sensitivity;
-
-		// Original version using sensitivity
-		/*
-		 * // takes out pixels within the threshold, and then removes those which are
-		 * too // close together for (int outerRho = 0; outerRho < maxRho; outerRho++) {
-		 * for (int outerDegs = 0; outerDegs < maxDegs; outerDegs++) { double currentVal
-		 * = table[outerRho][outerDegs]; if (currentVal >= (maxAveFinal - percent)) {
-		 * Pixel bigPixel = new Pixel(outerRho, outerDegs);
-		 * 
-		 * if (suppress(pixelList, bigPixel)) {
-		 * 
-		 * } else { pixelList.add(bigPixel); } } } }
-		 */
-
-		// Pure Non-max suppress
-		for (int rho = 2; rho < maxRho1 - 2; rho++) {
-			for (int deg = 2; deg < maxDegs - 2; deg++) {
-				if (table[rho][deg] > table[rho - 1][deg - 1] && table[rho][deg] > table[rho - 1][deg]
-						&& table[rho][deg] > table[rho - 1][deg + 1] && table[rho][deg] > table[rho][deg - 1]
-						&& table[rho][deg] > table[rho][deg + 1] && table[rho][deg] > table[rho + 1][deg - 1]
-						&& table[rho][deg] > table[rho + 1][deg] && table[rho][deg] > table[rho + 1][deg + 1]) {
-					Pixel bigPixel = new Pixel(rho, deg);
-					pixelList.add(bigPixel);
-				}
-			}
-		}
-		
-		// create backup of pixelList
-		ArrayList<Pixel> origPixelList = new ArrayList<Pixel>();
-		for ( int i= 0;i<pixelList.size();i++) {
-			origPixelList.add(pixelList.get(i));
-		}
-
-		// achen: Create Map of Pixel
-		int clustermap[][] = new int[maxRho][360];
-		int kmax = 1;
-		for (int i = 0; i < kmax; i++) {
-			for (int rho2 = 1; rho2 < maxRho - 1; rho2++) {
-				for (int theta2 = 1; theta2 < 360 - 1; theta2++) {
-					for (int c = 0; c < pixelList.size(); c++) {
-						double a = rho2 - pixelList.get(c).x;
-						double b = theta2 - pixelList.get(c).y;
-						double dist = (a * a) + (b * b);
-						dist = Math.sqrt(dist);
-						double d = rho2 - pixelList.get(clustermap[rho2][theta2]).x;
-						double e = theta2 - pixelList.get(clustermap[rho2][theta2]).y;
-						// System.out.println("d = "+d);
-						// System.out.println("e = "+e);
-						double prevDist = (d * d) + (e * e);
-						prevDist = Math.sqrt(prevDist);
-						if (dist < prevDist) {
-							clustermap[rho2][theta2] = c;
-							// System.out.printf("clustermap = " + clustermap[rho2][theta2]);
-						}
-					}
-				}
-			}
-
-			for (int rho2 = 1; rho2 < maxRho; rho2++) {
-				for (int theta2 = 1; theta2 < 360; theta2++) {
-					int c = clustermap[rho2][theta2];
-					// System.out.println("c = " + c);
-					double a = origtable[rho2][theta2];
-					double b = origtable[pixelList.get(c).x][pixelList.get(c).y];
-
-					if (a > b) {
-						pixelList.get(c).x = rho2;
-						pixelList.get(c).y = theta2;
-					}
-				}
-			}
-		}
-		// achen: end map of pixel changes
-
-		// makeLine
-		makeLine(newtable, pixelList);
-
-		// the below code draws the sinogram
-		//double percent = maxAveFinal * sensitivity;
-		finalImage = configu.createCompatibleImage(maxRho, 360);
-		finalGraphic = finalImage.createGraphics();
-
-		for (int degs = 0; degs < 360; degs++) {
-			for (int rho = 0; rho < maxRho; rho++) {
-				// double val = table[rho][degs];
-				//double val = newtable[rho][degs];
-				double val = origtable[rho][degs];
-				// achen:: print table values with (rho, degs) coordinates
-				//System.out.println(val);
-				double part1 = val / maxAveFinal;
-				double part2 = part1 * 255;
-				int colorVal = (int) Math.floor(part2);
-				Color color = new Color(colorVal, colorVal, colorVal);
-				/*
-				 * if (val >= (maxAveFinal - percent)) { System.out.println("Rho = " + rho +
-				 * ", Deg = " + degs); finalGraphic.setColor(Color.RED);
-				 * //finalGraphic.fillRect(rho, degs, 5, 5) finalGraphic.fillRect(rho - 1, degs
-				 * - 1, 1, 1); }
-				 */
-
-				finalGraphic.setColor(color);
-				finalGraphic.fillRect(rho, degs, 1, 1);
-			}
-		}
-
-		// achen:: create file to write rho and theta values
-		try {
-			File file = new File("C:\\Users\\achen\\Desktop\\Fall '19\\Master's Thesis\\Radon Transform Code\\test.txt");
-			if(file.createNewFile()) {
-				System.out.println("Successfully created");
-			}
-			else {
-				System.out.println("Failed to create or file already exist");
-			}
-			FileWriter fileWriter = new FileWriter(file);
-			//System.out.println("Writing fields to file... ");
-			fileWriter.write(String.format("%-14s%-14s%s\n", "rho", "theta", "pixel"));
-			//System.out.println("Writing data to file... ");
-			
-		for (int i = 0; i < origPixelList.size(); i++) {
-			Pixel maxRhoTheta = origPixelList.get(i);
-			int rh = maxRhoTheta.x;
-			int degrees = maxRhoTheta.y;
-			double val = origtable[rh][degrees];
-
-			//System.out.println("rho = " + rh);
-			//System.out.println("theta = " + degrees);
-			//System.out.println("Pixel Value = " + val);
-			// achen:: write rho and theta to file
-			fileWriter.write(String.format("%-14d%-14d%f\n", rh, degrees, val));
-			fileWriter.flush();
-			finalGraphic.setColor(Color.BLUE);
-			finalGraphic.fillRect(rh - 1, degrees - 1, 4, 4);
-		}
-		fileWriter.close();
-		
-		}
-		catch(IOException e){
-			e.printStackTrace();				
-		}
-		// achen:: end write to file
-		
-		
-		 for (int i = 0; i < pixelList.size(); i++) 
-		 { 
-			 Pixel maxRhoTheta =  pixelList.get(i); int rh = maxRhoTheta.x; int degrees = maxRhoTheta.y;
-			 //System.out.println("rho = " + rh); 
-			 //System.out.println("degrees = " + degrees); 
-			 finalGraphic.setColor(Color.RED); 
-			 finalGraphic.fillRect(rh - 1, degrees - 1, 4, 4); 
-			 }
-		 
-
-		System.out.println("Height of image:: " + finalImage.getHeight());
-		System.out.println("Width of image:: " + finalImage.getWidth());
-
-		File outputFile = new File(
-				outdir + "floor2_radon.png");
-		try {
-			ImageIO.write(finalImage, "png", outputFile);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-	}
-
-	/**
-	 * a private method which converts polar coordinates into cartesian coordinates
+	 * a private method which converts polar coordinates into cartesian coordinates (called within function makeLine())
 	 * 
 	 * @param rho   - the coordinate's rho value, as an int
 	 * @param theta - a double representing the coordinate's theta value
@@ -441,7 +649,7 @@ public class FastPanel extends JPanel {
 
 	/**
 	 * a private method which converts a cartesian coordinate into a pixel on an
-	 * image
+	 * image (called within function makeLine())
 	 * 
 	 * @param x     - the x-value of the inputted coordinate
 	 * @param y     - the y-value of the inputted coordinate
@@ -479,37 +687,9 @@ public class FastPanel extends JPanel {
 		return point;
 	}
 
-	/**
-	 * a private helper method for makeLine which checks if any rho-theta values in
-	 * the pixel list are too close to the inputted pixel
-	 * 
-	 * @param pixelList - the list of pixels to check
-	 * @param pixel     - the inputted pixel
-	 * @return false if no pixels are too close, true otherwise
-	 */
-	private boolean suppress(ArrayList<Pixel> pixelList, Pixel pixel) {
-		boolean control = false;
-		int rho = pixel.x;
-		int theta = pixel.y;
-		for (int i = 0; i < pixelList.size(); i++) {
-			Pixel currentPixel = pixelList.get(i);
-			int currRho = currentPixel.x;
-			int currTheta = currentPixel.y;
-			if (Math.abs(currRho - rho) <= 10) {
-				if (Math.abs(currTheta - theta) <= 10) {
-					control = true;
-				} else {
-					// leave control as false
-				}
-			} else {
-				// leave control as false
-			}
-		}
-		return control;
-	}
 
 	/**
-	 * a private method that draws the edge line over the image
+	 * a private method that draws the edge line over the image (called within function start())
 	 * 
 	 * @param table - a double array representing all brightness values to each
 	 *              corresponding rho, theta
@@ -520,7 +700,7 @@ public class FastPanel extends JPanel {
 	// then take the top however many
 	// problem; how do you decide which edges to take?
 	// need something that's not arbitrary
-	private void makeLine(double[][] table, ArrayList<Pixel> pixelList) {
+	private void makeLine(double[][] table, ArrayList<Pixel> pixelList, File f) {
 
 		/*
 		 * ArrayList<Pixel> pixelList = new ArrayList<Pixel>();
@@ -672,10 +852,15 @@ public class FastPanel extends JPanel {
 
 		// this saves the completed image to a file, taking it out doesn't affect
 		// anything
+		// Run for dataset
+		//File outputFile = new File(
+		//		indir + "floor2_saved.jpg");
+		System.out.println("result_dir->> " + result_dir);
 		File outputFile = new File(
-				indir + "floor2_saved.jpg");
+				result_dir + f.getName());
+		//count2++;
 		try {
-			ImageIO.write(image, "jpg", outputFile);
+			ImageIO.write(image, "png", outputFile);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -686,17 +871,9 @@ public class FastPanel extends JPanel {
 
 	}
 
-	/**
-	 * a method which hands in the image on the window
-	 */
-	public void paintComponent(Graphics g) {
-		// switch out the first variable for whichever image you want to display
-//		g.drawImage(finalImage, 0, 0, getWidth(), getHeight(), null);
-		g.drawImage(image, 0, 0, getWidth(), getHeight(), null);
-	}
 
 	/**
-	 * a private method that finds the radon transform of an image
+	 * a private method that finds the radon transform of an image (called in function start())
 	 * 
 	 * @param image      - a BufferedImage to be examined
 	 * @param maxRho     - the maximum rho value of the image
@@ -846,6 +1023,9 @@ public class FastPanel extends JPanel {
 		return table;
 	}
 	
+	/**
+	 * a method that finds the blur along x direction (called within constructor FastPanel())
+	 */
 	double [][] convolveX(double [][] in, double []kernel, int width, int height)
 	{
 		int y,x;
@@ -882,7 +1062,9 @@ public class FastPanel extends JPanel {
 		return blurx;
 	}
 
-
+	/**
+	 * a method that finds the blur along y direction (called within constructor FastPanel())
+	 */
 	double [][] convolveY(double [][] in, double []kernel, int width, int height)
 	{	
 		int y,x;
@@ -915,6 +1097,9 @@ public class FastPanel extends JPanel {
 		return blury;
 	}
 
+	/**
+	 * a method that returns 3*3 Kernel for blur (called within constructor FastPanel())
+	 */
 	double []triangularKernel(int len) {
 		double []kernel = new double[len];
 		
@@ -935,6 +1120,9 @@ public class FastPanel extends JPanel {
 		return kernel;
 	}
 	
+	/**
+	 * a method for finding derivative of image (called within constructor FastPanel())
+	 */
 	double[][] sobel(double[][] in, int width, int height) {
 		double[][] out = new double[width][height];
 
@@ -953,6 +1141,9 @@ public class FastPanel extends JPanel {
 		return out;
 	}
 
+	/**
+	 * a method for smoothening output image (called within constructor FastPanel())
+	 */
 	void saveGray(double [][]in, String fname, int width, int height)
 	{
 		BufferedImage img2 = configu.createCompatibleImage(width, height);
@@ -984,6 +1175,44 @@ public class FastPanel extends JPanel {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+	
+	/**
+	 * a method which hands in the image on the window
+	 */
+	public void paintComponent(Graphics g) {
+		// switch out the first variable for whichever image you want to display
+//		g.drawImage(finalImage, 0, 0, getWidth(), getHeight(), null);
+		g.drawImage(image, 0, 0, getWidth(), getHeight(), null);
+	}
+	
+	/**
+	 * a private helper method for makeLine which checks if any rho-theta values in
+	 * the pixel list are too close to the inputted pixel
+	 * 
+	 * @param pixelList - the list of pixels to check
+	 * @param pixel     - the inputted pixel
+	 * @return false if no pixels are too close, true otherwise
+	 */
+	private boolean suppress(ArrayList<Pixel> pixelList, Pixel pixel) {
+		boolean control = false;
+		int rho = pixel.x;
+		int theta = pixel.y;
+		for (int i = 0; i < pixelList.size(); i++) {
+			Pixel currentPixel = pixelList.get(i);
+			int currRho = currentPixel.x;
+			int currTheta = currentPixel.y;
+			if (Math.abs(currRho - rho) <= 10) {
+				if (Math.abs(currTheta - theta) <= 10) {
+					control = true;
+				} else {
+					// leave control as false
+				}
+			} else {
+				// leave control as false
+			}
+		}
+		return control;
 	}
 	
 }
